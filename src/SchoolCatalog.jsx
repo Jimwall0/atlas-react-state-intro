@@ -6,6 +6,10 @@ export default function SchoolCatalog() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortColumn, setSortColumn] = useState(null);
+  const [sortDirection, setSortDirection] = useState("asc");
+
   useEffect(() => {
     fetch(url)
       .then((response) => {
@@ -25,23 +29,97 @@ export default function SchoolCatalog() {
   }, []);
   if (loading) return <p>Loading...</p>;
   if (error) return <p>Error: {error}</p>;
+
+  const filteredItems = items.filter((course) => {
+    return Object.values(course)
+      .join(" ")
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
+  });
+
+  let sortedItems = [...filteredItems];
+
+  if (sortColumn !== null) {
+    sortedItems.sort((a, b) => {
+      const valueA = String(a[sortColumn]).toLowerCase();
+      const valueB = String(b[sortColumn]).toLowerCase();
+
+      if (valueA < valueB) {
+        if (sortDirection === "asc") {
+          return -1;
+        } else {
+          return 1;
+        }
+      } else if (valueA > valueB) {
+        if (sortDirection === "asc") {
+          return 1;
+        } else {
+          return -1;
+        }
+      } else {
+        return 0;
+      }
+    });
+  }
+
+  const handleSort = (columnName) => {
+    if (sortColumn === columnName) {
+      if (sortDirection === "asc") {
+        setSortDirection("desc");
+      } else {
+        setSortDirection("asc");
+      }
+    } else {
+      setSortColumn(columnName);
+      setSortDirection("asc");
+    }
+  };
+
+  const columns = [
+    { label: "Trimester", key: "trimester" },
+    { label: "Course Number", key: "courseNumber" },
+    { label: "Course Name", key: "courseName" },
+    { label: "Semester Credits", key: "semesterCredits" },
+    { label: "Total Clock Hours", key: "totalClockHours" },
+  ];
+
   return (
     <div className="school-catalog">
       <h1>School Catalog</h1>
-      <input type="text" placeholder="Search" />
+      <input
+        type="text"
+        placeholder="Search"
+        value={searchTerm}
+        onChange={(party) => setSearchTerm(party.target.value)}
+      />
       <table>
         <thead>
           <tr>
-            <th>Trimester</th>
-            <th>Course Number</th>
-            <th>Courses Name</th>
-            <th>Semester Credits</th>
-            <th>Total Clock Hours</th>
+            {columns.map((col) => {
+              let direction = "";
+              if (sortColumn === col.key) {
+                if (sortDirection === "asc") {
+                  direction = " asc";
+                } else {
+                  direction = " desc";
+                }
+              }
+              return (
+                <th
+                  key={col.key}
+                  onClick={() => handleSort(col.key)}
+                  style={{ cursor: "pointer" }}
+                >
+                  {col.label}
+                  {direction}
+                </th>
+              );
+            })}
             <th>Enroll</th>
           </tr>
         </thead>
         <tbody>
-          {items.map((course, index) => (
+          {sortedItems.map((course, index) => (
             <tr key={index}>
               {Object.values(course).map((value, i) => (
                 <td key={i}>{String(value)}</td>
